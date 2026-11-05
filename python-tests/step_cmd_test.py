@@ -1,9 +1,16 @@
+import argparse
 import rclpy
 import time
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--speed_factor', type=float, default=1.0,
+                        help='Scale factor for linear and angular speeds (1.0-3.0)')
+    args = parser.parse_args()
+    sf = max(1.0, min(3.0, args.speed_factor))
+
     rclpy.init()
     node = Node('simple_step_cmd')
     pub = node.create_publisher(Twist, '/cmd_vel', 10)
@@ -19,22 +26,29 @@ def main():
             pub.publish(msg)
             time.sleep(0.05)
 
-    print("Starting sequence...")
-    
-    # 1. Drive forward 0.5 m/s for 4s
-    move(0.5, 0.0, 4.0)
-    
-    # 2. Wait 1s
+    import math
+    turn_180_secs = math.pi / (1.0 * sf)
+
+    print(f"Starting sequence (speed_factor={sf}, 180° turn={turn_180_secs:.2f}s)...")
+
+    # 1. Drive forward
+    move(0.5 * sf, 0.0, 4.0)
     move(0.0, 0.0, 1.0)
-    
-    # 3. Rotate CW (negative) for 4s
-    move(0.0, -1.0, 4.0)
-    
-    # 4. Wait 1s
+
+    # 2. CW rotation 4s
+    move(0.0, -1.0 * sf, 4.0)
     move(0.0, 0.0, 1.0)
-    
-    # 5. Rotate CCW (positive) for 4s
-    move(0.0, 1.0, 4.0)
+
+    # 3. CCW rotation 4s (back to original heading)
+    move(0.0, 1.0 * sf, 4.0)
+    move(0.0, 0.0, 1.0)
+
+    # 4. Rotate 180° to face back toward start
+    move(0.0, 1.0 * sf, turn_180_secs)
+    move(0.0, 0.0, 1.0)
+
+    # 5. Drive forward (same duration) — returns to start
+    move(0.5 * sf, 0.0, 4.0)
 
     # Stop and cleanup
     pub.publish(Twist())
