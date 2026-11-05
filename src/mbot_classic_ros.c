@@ -69,6 +69,7 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time);
 
 // helper functions
 static int mbot_init_hardware(void);
+static float mbot_calibrate_gyro_bias(void);
 static void mbot_read_imu(void);
 static void mbot_read_encoders(void);
 static void mbot_read_adc(void);
@@ -217,6 +218,10 @@ static float gyro_odom_x = 0.0f;
 static float gyro_odom_y = 0.0f;
 static float gyro_odom_theta = 0.0f;
 
+// Gyro bias: initialized at startup, then tracked with EMA when stationary
+#define GYRO_CALIB_SAMPLES 200
+static float gyro_z_bias = 0.0f;
+
 // Main robot logic loop, runs at MAIN_LOOP_HZ (called by hardware timer)
 static bool mbot_loop(repeating_timer_t *rt) {
     {   // Critical section for sensor and state update
@@ -241,12 +246,17 @@ static bool mbot_loop(repeating_timer_t *rt) {
             &mbot_state.odom_y,
             &mbot_state.odom_theta
         );
+        // EMA to track slow bias drift, only when stationary
+        if (fabsf(mbot_state.wz) < 0.01f) {
+            gyro_z_bias = 0.999f * gyro_z_bias + 0.001f * mbot_state.imu_gyro[2];
+        }
+
         mbot_calculate_gyrodometry(
             mbot_state.vx,
             mbot_state.vy,
             mbot_state.wz,
             MAIN_LOOP_PERIOD,
-            mbot_state.imu_gyro[2],
+            mbot_state.imu_gyro[2] - gyro_z_bias,
             &gyro_odom_x,
             &gyro_odom_y,
             &gyro_odom_theta
@@ -447,6 +457,7 @@ int main() {
     printf("--------------------------------\r\n");
 
     mbot_init_hardware();
+    gyro_z_bias = mbot_calibrate_gyro_bias();
 
     mbot_read_fram(0, sizeof(params), (uint8_t*)&params);
     mbot_read_pid_gains(&params);
@@ -557,6 +568,16 @@ static int mbot_init_hardware(void){
     // Initialize FRAM
     mbot_init_fram();
     return MBOT_OK;
+}
+
+static float mbot_calibrate_gyro_bias(void) {
+    float accum = 0.0f;
+    for (int i = 0; i < GYRO_CALIB_SAMPLES; i++) {
+        mbot_read_imu();
+        accum += mbot_state.imu_gyro[2];
+        mbot_wait_ms(10);  // 100Hz
+    }
+    return accum / GYRO_CALIB_SAMPLES;
 }
 
 static void mbot_read_imu(void) {
