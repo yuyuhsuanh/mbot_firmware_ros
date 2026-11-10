@@ -7,9 +7,9 @@ from geometry_msgs.msg import Twist
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--speed_factor', type=float, default=1.0,
-                        help='Scale factor for linear and angular speeds (1.0-3.0)')
+                        help='Speed scale 1.0=slow(~0.2m/s,pi/4rad/s) to 4.0=fast(~0.8m/s,pirad/s)')
     args = parser.parse_args()
-    sf = max(1.0, min(3.0, args.speed_factor))
+    sf = max(1.0, min(4.0, args.speed_factor))
 
     rclpy.init()
     node = Node('simple_step_cmd')
@@ -27,28 +27,26 @@ def main():
             time.sleep(0.05)
 
     import math
-    turn_180_secs = math.pi / (1.0 * sf)
+    # Base speeds: slow=1.0 (0.2m/s, pi/4 rad/s), fast=4.0 (0.8m/s, pi rad/s)
+    lin_spd = 0.2 * sf
+    ang_spd = (math.pi / 4) * sf
+    # Invert duration so physical path (0.8m fwd, pi rad turn) stays constant
+    dur = 4.0 / sf
 
-    print(f"Starting sequence (speed_factor={sf}, 180° turn={turn_180_secs:.2f}s)...")
+    print(f"Starting sequence (speed_factor={sf:.1f}, lin={lin_spd:.2f}m/s, "
+          f"ang={ang_spd:.2f}rad/s, dur={dur:.2f}s)...")
 
-    # 1. Drive forward
-    move(0.5 * sf, 0.0, 4.0)
+    # 1. Drive forward ~0.8 m
+    move(lin_spd, 0.0, dur)
     move(0.0, 0.0, 1.0)
 
-    # 2. CW rotation 4s
-    move(0.0, -1.0 * sf, 4.0)
+    # 2. Right turn ~pi rad
+    move(0.0, -ang_spd, dur)
     move(0.0, 0.0, 1.0)
 
-    # 3. CCW rotation 4s (back to original heading)
-    move(0.0, 1.0 * sf, 4.0)
+    # 3. Left turn ~pi rad (back to original heading)
+    move(0.0, ang_spd, dur)
     move(0.0, 0.0, 1.0)
-
-    # 4. Rotate 180° to face back toward start
-    move(0.0, 1.0 * sf, turn_180_secs)
-    move(0.0, 0.0, 1.0)
-
-    # 5. Drive forward (same duration) — returns to start
-    move(0.5 * sf, 0.0, 4.0)
 
     # Stop and cleanup
     pub.publish(Twist())
