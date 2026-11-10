@@ -214,13 +214,14 @@ static void mbot_publish_state(void) {
 }
 
 // Separate state for gyrodometry (independent from wheel odometry)
-static float gyro_odom_x = 0.0f;
-static float gyro_odom_y = 0.0f;
-static float gyro_odom_theta = 0.0f;
+float gyro_odom_x = 0.0f;
+float gyro_odom_y = 0.0f;
+float gyro_odom_theta = 0.0f;
 
 // Gyro bias: initialized at startup, then tracked with EMA when stationary
 #define GYRO_CALIB_SAMPLES 200
 static float gyro_z_bias = 0.0f;
+
 
 // Main robot logic loop, runs at MAIN_LOOP_HZ (called by hardware timer)
 static bool mbot_loop(repeating_timer_t *rt) {

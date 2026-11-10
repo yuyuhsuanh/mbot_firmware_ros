@@ -222,6 +222,9 @@ void reset_odometry_callback(const void * req, void * res) {
     mbot_state.odom_x = 0.0f;
     mbot_state.odom_y = 0.0f;
     mbot_state.odom_theta = 0.0f;
+    gyro_odom_x = 0.0f;
+    gyro_odom_y = 0.0f;
+    gyro_odom_theta = 0.0f;
     EXIT_CRITICAL();
 
     // Set response

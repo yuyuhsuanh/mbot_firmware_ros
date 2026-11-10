@@ -68,6 +68,9 @@ typedef struct {
 // Extern declarations for global state variables defined in mbot_classic_ros.c
 extern mbot_state_t mbot_state;
 extern mbot_cmd_t mbot_cmd;
+extern float gyro_odom_x;
+extern float gyro_odom_y;
+extern float gyro_odom_theta;
 
 /**
  * @brief Initialize microROS communication
