@@ -251,6 +251,12 @@ static bool mbot_loop(repeating_timer_t *rt) {
             gyro_z_bias = 0.999f * gyro_z_bias + 0.001f * mbot_state.imu_gyro[2];
         }
 
+        if (reset_gyro_odom_pending) {
+            gyro_odom_x = 0.0f;
+            gyro_odom_y = 0.0f;
+            gyro_odom_theta = 0.0f;
+            reset_gyro_odom_pending = false;
+        }
         mbot_calculate_gyrodometry(
             mbot_state.vx,
             mbot_state.vy,

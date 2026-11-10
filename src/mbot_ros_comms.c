@@ -33,6 +33,8 @@ rcl_service_t reset_odometry_service;
 std_srvs__srv__Trigger_Request reset_odom_req;
 std_srvs__srv__Trigger_Response reset_odom_res;
 
+volatile bool reset_gyro_odom_pending = false;
+
 rcl_service_t lidar_power_service;
 std_srvs__srv__SetBool_Request lidar_power_req;
 std_srvs__srv__SetBool_Response lidar_power_res;
@@ -217,11 +219,12 @@ void reset_odometry_callback(const void * req, void * res) {
     (void)req; // Request is empty for Trigger service
     std_srvs__srv__Trigger_Response * response = (std_srvs__srv__Trigger_Response *)res;
 
-    // Reset odometry in a thread-safe manner
+    // Reset wheel odometry and signal main loop to zero gyro odometry
     ENTER_CRITICAL();
     mbot_state.odom_x = 0.0f;
     mbot_state.odom_y = 0.0f;
     mbot_state.odom_theta = 0.0f;
+    reset_gyro_odom_pending = true;
     EXIT_CRITICAL();
 
     // Set response

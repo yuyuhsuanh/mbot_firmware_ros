@@ -55,6 +55,9 @@ extern rcl_service_t lidar_power_service;
 extern std_srvs__srv__SetBool_Request lidar_power_req;
 extern std_srvs__srv__SetBool_Response lidar_power_res;
 
+// Set by reset_odometry_callback; cleared by mbot_classic_ros.c to zero gyro_odom_*
+extern volatile bool reset_gyro_odom_pending;
+
 // Initialization functions
 int mbot_ros_comms_init_services(rcl_node_t *node);
 int mbot_ros_comms_init_messages(rcl_allocator_t* allocator);
